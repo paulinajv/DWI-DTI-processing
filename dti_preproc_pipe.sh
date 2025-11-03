@@ -169,6 +169,7 @@ for file in ${raw_dir}/*; do
         echo " Already exist :) "
     fi
 
+done
 # --------------------------------------------------------------------------------
 echo 'Finish preprocessing for all subjects!, Next, co-registration '
 # --------------------------------------------------------------------------------
