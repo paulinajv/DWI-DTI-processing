@@ -169,49 +169,64 @@ for file in ${raw_dir}/*; do
         echo " Already exist :) "
     fi
 
-    # -----------------------------------------------------------------
-    echo 'STEP 6: Registration'
-    # -----------------------------------------------------------------
+# --------------------------------------------------------------------------------
+echo 'Finish preprocessing for all subjects!, Next, co-registration '
+# --------------------------------------------------------------------------------
 
-    fixed_img=${outdir}/${fixed_img_id}/registration/${fixed_img_id}_mean_bzero.nii.gz
-    reg_out=${registdir}/${id}_fulldwi_registered.nii.gz
+# -----------------------------------------------------------------
+echo 'STEP 6: Registration'
+# -----------------------------------------------------------------
 
-    if [ -f "$reg_out" ]; then
-        echo " - Skipping registration; $reg_out already exist)"
-        else
+for f in ${out_base}/* 
+    do
+        id=$(basename "$f")
+        echo "Registering subject $id..."
 
-    echo "Registering $id to $fixed_img"
-    antsRegistrationSyN.sh \
-        -d 3 \
-        -f "$fixed_img" \
-        -m "$b0" \
-        -t br \
-        -o ${registdir}/${id}_
+        dir=${out_base}/${id}
+        registdir=${dir}/registration
+        b0=${registdir}/${id}_mean_bzero.nii.gz
+        dwi_dem=${dir}/eddy/${id}_dem.nii.gz   
+        fixed_img=${out_base}/${fixed_img_id}/registration/${fixed_img_id}_mean_bzero.nii.gz
+        reg_out=${registdir}/${id}_fulldwi_registered.nii.gz
+        rotated_bvecs=${dir}/${id}_dti_rotated.bvec
 
-    antsApplyTransforms \
-        -v 1 -d 3 -e 3 \
-        -i "$dwi_dem" \
-        -o "$reg_out" \
-        -r "$fixed_img" \
-        -t ${registdir}/${id}_1Warp.nii.gz \
-        -t ${registdir}/${id}_0GenericAffine.mat \
-        -n Linear --float
-    fi
+        if [ -f "$reg_out" ]; then
+            echo " - Skipping registration; $reg_out already exist)"
+            else
 
-    # -----------------------------------------------------------------
-    echo 'STEP 7: Calculate DTI maps'
-    # -----------------------------------------------------------------
-    dti_dir=${outdir}/dti_maps
-    mkdir -p "$dti_dir"
+        echo "Registering $id to $fixed_img"
+        
+        antsRegistrationSyN.sh \
+            -d 3 \
+            -f "$fixed_img" \
+            -m "$b0" \
+            -t br \
+            -o ${registdir}/${id}_
 
-    tensor=${dti_dir}/tensor.nii.gz
-    fa=${dti_dir}/fa.nii.gz
-    md=${dti_dir}/md.nii.gz
-    rd=${dti_dir}/rd.nii.gz
-    ad=${dti_dir}/ad.nii.gz
+        antsApplyTransforms \
+            -v 1 -d 3 -e 3 \
+            -i "$dwi_dem" \
+            -o "$reg_out" \
+            -r "$fixed_img" \
+            -t ${registdir}/${id}_1Warp.nii.gz \
+            -t ${registdir}/${id}_0GenericAffine.mat \
+            -n Linear --float
+        fi
 
-    dwi2tensor -fslgrad $working_bvec $working_bval $reg_out $tensor
-    tensor2metric -fa $fa -adc $md -rd $rd -ad $ad $tensor
+        # -----------------------------------------------------------------
+        echo 'STEP 7: Calculate DTI maps'
+        # -----------------------------------------------------------------
+        dti_dir=${dir}/dti_maps
+        mkdir -p "$dti_dir"
+
+        tensor=${dti_dir}/tensor.nii.gz
+        fa=${dti_dir}/fa.nii.gz
+        md=${dti_dir}/md.nii.gz
+        rd=${dti_dir}/rd.nii.gz
+        ad=${dti_dir}/ad.nii.gz
+
+        dwi2tensor -fslgrad $rotated_bvecs $working_bval $reg_out $tensor
+        tensor2metric -fa $fa -adc $md -rd $rd -ad $ad $tensor
 
     
 # --------------------------------------------------------------
