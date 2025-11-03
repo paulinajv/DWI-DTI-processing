@@ -12,9 +12,9 @@ NOTE: you need to have installed MRtrix, FSL and ANTs. If you have them in a pyt
 
 Before you start:
 
-Two variables are hard-coded and need to be modify depending of your dataset:
+One variable is hard-coded and need to be modify depending of your dataset:
 - The DTI scan number 
-- First bval number
+
 
 The script is call with 3 arguments:
 
