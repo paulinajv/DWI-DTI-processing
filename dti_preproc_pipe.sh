@@ -158,14 +158,13 @@ for file in ${raw_dir}/*; do
     # -----------------------------------------------------------------
     echo 'STEP 5: Extract mean b0 for registration'
     # -----------------------------------------------------------------
-    echo 'STEP 5: extract bzero for registration'
 
     registdir=${outdir}/registration
     mkdir -p ${registdir}
     b0=${registdir}/${id}_mean_bzero.nii.gz
 
     if [ ! -f "$b0" ]; then
-        dwiextract -fslgrad $working_bvec $working_bval $dwi_dem - -bzero | mrmath - mean $b0 -axis 3
+        dwiextract -fslgrad $rotated_bvecs $working_bval $dwi_dem - -bzero | mrmath - mean $b0 -axis 3
     else
         echo " Already exist :) "
     fi
