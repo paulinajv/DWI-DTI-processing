@@ -5,7 +5,6 @@
 echo 'NOTE: there are a few things hard coded: change it as needed'
 
 dit_id_scan=4 # <- hard coded
-first_shell_value=13.4834997087 # <- hard coded 
 
 raw_dir=$1   #my/path/../raw # path to the raw images folder (make sure there is only bruker files in that folder)
 out_base=$2 #my/path/../dti #set here the name you want for the output folders (dti, for example)
@@ -82,7 +81,8 @@ for file in ${raw_dir}/*; do
     fi
 
     # --- change the first b-value to 0 ---
-    first_bval=${first_shell_value}  # hardcoded value for first shell
+    first_bval=$(cat $working_bval | awk '{print $1}')
+    echo $first_bval
     tmp_bval=${working_bval%.bval}_tmp.bval
     sed "s/${first_bval}/0/g" "$working_bval" > "$tmp_bval" && mv "$tmp_bval" "$working_bval"
     fi
