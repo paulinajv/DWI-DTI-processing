@@ -56,24 +56,37 @@ for file in ${raw_dir}/*; do
     # -----------------------------------------------------------------
     echo 'STEP 1: Define paths and variables'
     # -----------------------------------------------------------------
-    dwi="${outdir}/${id}_dti.nii.gz"
-    bvec=${dwi%.nii.gz}.bvec
-    bval=${dwi%.nii.gz}.bval
+    dwi="${outdir}/${id}_*.nii.gz"
+    bvec="${dwi%.nii.gz}.bvec"
+    bval="${dwi%.nii.gz}.bval"
 
-    working_dwi=$dwi
-    working_bvec=$bvec
-    working_bval=$bval
+    working_dwi=${outdir}/${id}_dti.nii.gz
+    working_bvec=${working_dwi%.nii.gz}.bvec
+    working_bval=${working_dwi%.nii.gz}.bval
 
-    # if [ ! -f "$working_bvec" ] || [ ! -f "$working_bval" ]; then
-    #     echo "ERROR: can't find bvec/bvals for $id..."
-    #     continue
-    # fi
+    echo $dwi
+    echo $bvec
+    echo $bval 
 
-    # change the first b-value to 0
-    first_bval=${first_shell_value}  # hardcoded value for first shell; change it as needed
+    if [ -f "$working_dwi" ] && [ -f "$working_bvec" ] && [ -f "$working_bval" ]; then
+    echo " - Skipping STEP 1 for $id (files already exist)"
+    else
+    echo " - Moving and renaming files for $id ..."
+    mv $dwi $working_dwi
+    mv $bval $working_bval
+    mv $bvec $working_bvec
+
+    if [ ! -f "$working_bvec" ] || [ ! -f "$working_bval" ]; then
+        echo "ERROR: can't find bvec/bvals for $id..."
+        continue
+    fi
+
+    # --- change the first b-value to 0 ---
+    first_bval=${first_shell_value}  # hardcoded value for first shell
     tmp_bval=${working_bval%.bval}_tmp.bval
-    sed "s/${first_bval}/0/g" $working_bval > $tmp_bval && mv $tmp_bval $working_bval
-
+    sed "s/${first_bval}/0/g" "$working_bval" > "$tmp_bval" && mv "$tmp_bval" "$working_bval"
+    fi
+    
     # -----------------------------------------------------------------
     echo 'STEP 2: Mask'
     # -----------------------------------------------------------------
