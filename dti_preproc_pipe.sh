@@ -136,7 +136,11 @@ for file in ${raw_dir}/*; do
     else
         echo " $dwi_de already exist, bye!)"
     fi
-
+    
+    # copy the eddy bvecs
+    rotated_bvecs=${outdir}/${id}_dti_rotated.bvec
+    cp "${eddy_dir}/${id}_de.eddy_rotated_bvecs" "$rotated_bvecs"
+    
     # -----------------------------------------------------------------
     echo 'STEP 4: apply mask before registration'
     # -----------------------------------------------------------------
