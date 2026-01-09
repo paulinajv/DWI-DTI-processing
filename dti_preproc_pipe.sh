@@ -8,7 +8,6 @@ dit_id_scan=4 # <- hard coded
 
 raw_dir=$1   #my/path/../raw # path to the raw images folder (make sure there is only bruker files in that folder)
 out_base=$2 #my/path/../dti #set here the name you want for the output folders (dti, for example)
-fixed_img_id=$3   # fixed image ID for registration; chose the one you think is better!
 
 mkdir -p $out_base
 
@@ -84,9 +83,11 @@ for file in ${raw_dir}/*; do
     first_bval=$(cat $working_bval | awk '{print $1}')
     echo $first_bval
     tmp_bval=${working_bval%.bval}_tmp.bval
-    sed "s/${first_bval}/0/g" "$working_bval" > "$tmp_bval" && mv "$tmp_bval" "$working_bval"
+    sed "s/${first_bval}/0/g" "$working_bval" > "$tmp_bval" 
     fi
     
+    cp $tmp_bval $working_bval #copy back the corrected bval, keep old just in case
+
     # -----------------------------------------------------------------
     echo 'STEP 2: Mask'
     # -----------------------------------------------------------------
