@@ -6,9 +6,9 @@ echo 'NOTE: the number of DWI scan is hard coded: change it as needed'
 
 dit_id_scan=??? # <- hard coded
 
-basedir=$1
+basedir=$1   #my/path/.. # base path
 raw_dir=$2   #my/path/../raw # path to the raw images folder (make sure there is only bruker files in that folder)
-out_base=$3 #my/path/../dti #set here the name you want for the output folders (dti, for example)
+out_base=$3  #my/path/../dti #set here the name you want for the output folders (dti, for example)
 
 mkdir -p $out_base
 
