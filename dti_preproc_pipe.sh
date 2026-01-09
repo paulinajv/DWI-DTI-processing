@@ -110,8 +110,8 @@ for file in ${raw_dir}/*; do
 
     eddy_dir=${outdir}/eddy
     mkdir -p $eddy_dir
-    dwi_de=${eddy_dir}/${id}_de.nii.gz
-    eddy_out=${eddy_dir}/${id}_de
+    dwi_de=${eddy_dir}/${id}_dti_de.nii.gz
+    eddy_out=${eddy_dir}/${id}_dti_de
 
     if [ ! -f "$dwi_de" ]; then
         acqp=${eddy_dir}/acqp.txt
@@ -140,8 +140,18 @@ for file in ${raw_dir}/*; do
     
     # copy the eddy bvecs
     rotated_bvecs=${outdir}/${id}_dti_rotated.bvec
-    cp "${eddy_dir}/${id}_de.eddy_rotated_bvecs" "$rotated_bvecs"
-    
+
+    if [ ! -f "$rotated_bvecs" ]; then
+        cp "${eddy_dir}/${id}_dti_de.eddy_rotated_bvecs" "$rotated_bvecs"
+    else
+        echo " rotated bvecs file exists "
+    fi
+    # make sure we replace any -na or -nan values with 0
+    if grep -qE -- '-na|-nan' "$rotated_bvecs"; then
+    sed -i 's/-na\{0,10\}/0/g' "$rotated_bvecs"
+    echo "Replaced -na/-nan with 0 in rotated bvecs"
+    fi
+
     # -----------------------------------------------------------------
     echo 'STEP 4: apply mask before registration'
     # -----------------------------------------------------------------
