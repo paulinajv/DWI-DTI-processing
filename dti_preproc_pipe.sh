@@ -8,7 +8,6 @@ dit_id_scan=4 # <- hard coded
 
 raw_dir=$1   #my/path/../raw # path to the raw images folder (make sure there is only bruker files in that folder)
 out_base=$2 #my/path/../dti #set here the name you want for the output folders (dti, for example)
-fixed_img_id=$3   # fixed image ID for registration; chose the one you think is better!
 
 mkdir -p $out_base
 
@@ -84,9 +83,11 @@ for file in ${raw_dir}/*; do
     first_bval=$(cat $working_bval | awk '{print $1}')
     echo $first_bval
     tmp_bval=${working_bval%.bval}_tmp.bval
-    sed "s/${first_bval}/0/g" "$working_bval" > "$tmp_bval" && mv "$tmp_bval" "$working_bval"
+    sed "s/${first_bval}/0/g" "$working_bval" > "$tmp_bval" 
     fi
     
+    cp $tmp_bval $working_bval #copy back the corrected bval, keep old just in case
+
     # -----------------------------------------------------------------
     echo 'STEP 2: Mask'
     # -----------------------------------------------------------------
@@ -109,8 +110,8 @@ for file in ${raw_dir}/*; do
 
     eddy_dir=${outdir}/eddy
     mkdir -p $eddy_dir
-    dwi_de=${eddy_dir}/${id}_de.nii.gz
-    eddy_out=${eddy_dir}/${id}_de
+    dwi_de=${eddy_dir}/${id}_dti_de.nii.gz
+    eddy_out=${eddy_dir}/${id}_dti_de
 
     if [ ! -f "$dwi_de" ]; then
         acqp=${eddy_dir}/acqp.txt
@@ -139,8 +140,18 @@ for file in ${raw_dir}/*; do
     
     # copy the eddy bvecs
     rotated_bvecs=${outdir}/${id}_dti_rotated.bvec
-    cp "${eddy_dir}/${id}_de.eddy_rotated_bvecs" "$rotated_bvecs"
-    
+
+    if [ ! -f "$rotated_bvecs" ]; then
+        cp "${eddy_dir}/${id}_dti_de.eddy_rotated_bvecs" "$rotated_bvecs"
+    else
+        echo " rotated bvecs file exists "
+    fi
+    # make sure we replace any -na or -nan values with 0
+    if grep -qE -- '-na|-nan' "$rotated_bvecs"; then
+    sed -i 's/-na\{0,10\}/0/g' "$rotated_bvecs"
+    echo "Replaced -na/-nan with 0 in rotated bvecs"
+    fi
+
     # -----------------------------------------------------------------
     echo 'STEP 4: apply mask before registration'
     # -----------------------------------------------------------------
