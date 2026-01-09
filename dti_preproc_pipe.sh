@@ -2,9 +2,9 @@
 
 ##---------- START HERE --------------###
 
-echo 'NOTE: there are a few things hard coded: change it as needed'
+echo 'NOTE: the number of DWI scan is hard coded: change it as needed'
 
-dit_id_scan=4 # <- hard coded
+dit_id_scan=??? # <- hard coded
 
 basedir=$1
 raw_dir=$2   #my/path/../raw # path to the raw images folder (make sure there is only bruker files in that folder)
