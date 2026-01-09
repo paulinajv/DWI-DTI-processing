@@ -6,8 +6,9 @@ echo 'NOTE: there are a few things hard coded: change it as needed'
 
 dit_id_scan=4 # <- hard coded
 
-raw_dir=$1   #my/path/../raw # path to the raw images folder (make sure there is only bruker files in that folder)
-out_base=$2 #my/path/../dti #set here the name you want for the output folders (dti, for example)
+basedir=$1
+raw_dir=$2   #my/path/../raw # path to the raw images folder (make sure there is only bruker files in that folder)
+out_base=$3 #my/path/../dti #set here the name you want for the output folders (dti, for example)
 
 mkdir -p $out_base
 
@@ -180,72 +181,89 @@ for file in ${raw_dir}/*; do
         echo " Already exist :) "
     fi
 
+    # -----------------------------------------------------------------
+    echo 'STEP 6: Calculate DTI maps'
+    # -----------------------------------------------------------------
+   
+    dti_dir=${outdir}/dti_maps
+    mkdir -p "$dti_dir"
+
+    tensor=${dti_dir}/tensor.nii.gz
+    fa=${dti_dir}/fa.nii.gz
+    md=${dti_dir}/md.nii.gz
+    rd=${dti_dir}/rd.nii.gz
+    ad=${dti_dir}/ad.nii.gz
+
+    dwi2tensor -fslgrad $rotated_bvecs $working_bval $dwi_dem $tensor
+    tensor2metric -fa $fa -adc $md -rd $rd -ad $ad $tensor
+
 done
 # --------------------------------------------------------------------------------
 echo 'Finish preprocessing for all subjects!, Next, co-registration '
 # --------------------------------------------------------------------------------
 
 # -----------------------------------------------------------------
-echo 'STEP 6: Registration'
+echo 'STEP 7: Unbias template generation'
 # -----------------------------------------------------------------
 
 for f in ${out_base}/* 
     do
         id=$(basename "$f")
-        echo "Registering subject $id..."
 
+        # define variables
         dir=${out_base}/${id}
         registdir=${dir}/registration
         b0=${registdir}/${id}_mean_bzero.nii.gz
-        dwi_dem=${dir}/eddy/${id}_dem.nii.gz   
-        fixed_img=${out_base}/${fixed_img_id}/registration/${fixed_img_id}_mean_bzero.nii.gz
-        reg_out=${registdir}/${id}_fulldwi_registered.nii.gz
-        rotated_bvecs=${dir}/${id}_dti_rotated.bvec
+        dtimaps_dir=${dir}/dti_maps
+        # for the template
+        template_dir=${out_base}/template
+        mkdir -p ${template_dir}
+        template_img=${template_dir}/my_template0.nii.gz
 
-        if [ -f "$reg_out" ]; then
-            echo " - Skipping registration; $reg_out already exist)"
-            else
 
-        echo "Registering $id to $fixed_img"
+        # Do template with bzeros. Takes a while...
+        antsMultivariateTemplateConstruction2.sh \
+            -d 3 \
+            -o ${template_dir}/my_ \
+            -i 5 \
+            ${registdir}/*_mean_bzero.nii.gz
+
+
+        # -----------------------------------------------------------------
+        echo 'STEP 8: Registration'
+        # -----------------------------------------------------------------
+
+        echo "Registering $id to $template_img"
         
+        # first register b0 to template
         antsRegistrationSyN.sh \
             -d 3 \
-            -f "$fixed_img" \
+            -f "$template_img" \
             -m "$b0" \
             -t br \
             -o ${registdir}/${id}_
 
-        antsApplyTransforms \
-            -v 1 -d 3 -e 3 \
-            -i "$dwi_dem" \
-            -o "$reg_out" \
-            -r "$fixed_img" \
-            -t ${registdir}/${id}_1Warp.nii.gz \
-            -t ${registdir}/${id}_0GenericAffine.mat \
-            -n Linear --float
-        fi
 
-        # -----------------------------------------------------------------
-        echo 'STEP 7: Calculate DTI maps'
-        # -----------------------------------------------------------------
-        dti_dir=${dir}/dti_maps
-        mkdir -p "$dti_dir"
+        # now apply the transforms to the dwi maps
+        for i in ${dtimaps_dir}/*
+                do
+                maps=$(basename "$i" | awk -F'.' '{print $1}')
 
-        tensor=${dti_dir}/tensor.nii.gz
-        fa=${dti_dir}/fa.nii.gz
-        md=${dti_dir}/md.nii.gz
-        rd=${dti_dir}/rd.nii.gz
-        ad=${dti_dir}/ad.nii.gz
-
-        dwi2tensor -fslgrad $rotated_bvecs $working_bval $reg_out $tensor
-        tensor2metric -fa $fa -adc $md -rd $rd -ad $ad $tensor
-
-    
-# --------------------------------------------------------------
-# You're DONE :)
-# -------------------------------------------------------------- 
-
+                antsApplyTransforms \
+                    -v 1 -d 3 \
+                    -i $i \
+                    -o ${registdir}/${maps}_regist.nii.gz \
+                    -r $template_img \
+                    -t ${registdir}/${id}_1Warp.nii.gz \
+                    -t ${registdir}/${id}_0GenericAffine.mat \
+                    -n Linear \
+                    --float
+            done    
 done
     
+
+# --------------------------------------------------------------
+echo "Youre all done! :)"
+# -------------------------------------------------------------- 
 
 
